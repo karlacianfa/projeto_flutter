@@ -1,14 +1,16 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
+import 'package:projeto_karla/ContatoEntity.dart';
 import 'package:projeto_karla/NovoCadastroScreen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp();
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +28,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({required this.title});
 
   final String title;
 
@@ -35,16 +37,33 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  //está declarando uma lista chamada contatos que só pode conter objetos do tipo ContatoEntity. [] está inicializando vazia
+  List<ContatoEntity> contatos = <ContatoEntity>[];
 
-  void _novoContato() {
+  void _novoContato() async {
     // passando por parâmetro exibe telas como uma pilha usando a transição correta animações,Para navegar até uma nova tela
-    Navigator.of(context).push(
+    //async await foi adicionado depois,para aguardar o retorno do nosso cadastro recem realizado
+    ContatoEntity? contatoEntity = await Navigator.of(context).push(
       MaterialPageRoute(
         // nessa builder vamos chamar a nova pagina
         builder: (context) => const NovoCadastroScreen(),
       ),
     );
+
+    //  se for diferente de nulo, vamos adicionar a lista de contatos
+    if (contatoEntity != null) {
+      // precisa abrir o setState para mudar o estado da nossa pagina, ou seja atualizar e exibir as novas informações
+      setState(() {
+        contatos.add(contatoEntity);
+      });
+    }
+  }
+
+  Future<void> _launchUrl(telefone) async {
+    final Uri _url = Uri(scheme: 'tel', path: telefone);
+    if (!await launchUrl(_url)) {
+      throw Exception('Could not launch $_url');
+    }
   }
 
   @override
@@ -58,6 +77,8 @@ class _MyHomePageState extends State<MyHomePage> {
       drawer: Drawer(
         //menu sanduíche
         child: ListView(
+          scrollDirection: Axis.vertical,
+          shrinkWrap: true,
           //filho do menu. ListView será um array
           children: [
             UserAccountsDrawerHeader(
@@ -96,11 +117,34 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[],
-        ),
-      ),
+          child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          ListView(
+            scrollDirection: Axis.vertical,
+            shrinkWrap: true,
+            children: [
+              for (ContatoEntity contato in contatos)
+                ListTile(
+                  title: Text(contato
+                      .nome!), // a exclamação é utilizado para indicar ao compilador que você tem certeza de que uma expressão não será nula durante o tempo de execução.
+                  subtitle: Text(contato.telefone!),
+                  leading: Icon(
+                    Icons.account_circle,
+                    size: 50,
+                  ),
+                  trailing: Icon(
+                    Icons.phone,
+                    size: 35,
+                  ),
+                  onTap: () {
+                    _launchUrl(contato.telefone);
+                  },
+                )
+            ],
+          )
+        ],
+      )),
       floatingActionButton: FloatingActionButton(
         onPressed: _novoContato,
         tooltip: 'Increment',
